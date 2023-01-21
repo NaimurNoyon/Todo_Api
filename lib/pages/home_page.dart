@@ -40,13 +40,15 @@ class _HomePageState extends State<HomePage> {
                 return ListTile(
                   leading: CircleAvatar(child: Text('${index + 1}')),
                   title: Text(item['title']),
-                  subtitle: Text(item['description']),
+                  subtitle: item['is_completed']?Text(item['description']): Text(item['title']),
                   trailing: PopupMenuButton(
                     onSelected: (value){
                       if(value == 'edit'){
                         navigateToEditPage(item);
                       }else if(value == 'delete'){
                         deleteById(id);
+                      }else if(value == 'done') {
+                        doneById(item);
                       }
                     },
                     itemBuilder: (context){
@@ -58,6 +60,10 @@ class _HomePageState extends State<HomePage> {
                         PopupMenuItem(
                             child: Text('Delete'),
                             value: 'delete',
+                        ),
+                        PopupMenuItem(
+                          child: Text('Done'),
+                          value: 'done',
                         ),
                       ];
                     },
@@ -110,6 +116,39 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+
+
+  Future<void> doneById(item) async{
+    if(item == null){
+      print('you can not call update without previous data');
+      return;
+    }
+    final id = item['_id'];
+    final title = item['title'];
+    final description = item['description'];
+    final body = {
+      'title': title,
+      'description': description,
+      'is_completed': true,
+    };
+    final url = 'https://api.nstack.in/v1/todos/$id';
+    final uri = Uri.parse(url);
+    final response = await http.put(uri,
+        body: jsonEncode(body),
+        headers: {'Content-Type': 'application/json'}
+    );
+
+    print(response.statusCode);
+
+    if (response.statusCode == 404) {
+      showSuccessMessage('Update Success');
+    }else{
+      showErrorMessage('Update Failed');
+    }
+  }
+
+
+
   Future<void> fetchTodo() async {
     final url = 'http://api.nstack.in/v1/todos?page=1&limit=10';
     final uri = Uri.parse(url);
@@ -124,6 +163,12 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       isLoading = false;
     });
+  }
+
+
+  void showSuccessMessage(String message){
+    final snackBar = SnackBar(content:  Text(message));
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
   void showErrorMessage(String message){
